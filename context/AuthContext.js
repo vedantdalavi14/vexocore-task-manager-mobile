@@ -1,3 +1,4 @@
+// context/AuthContext.js
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -17,7 +18,6 @@ export function AuthProvider({ children }) {
       setCurrentUser(user);
       setLoading(false);
     });
-
     return unsubscribe;
   }, []);
 
@@ -26,6 +26,7 @@ export function AuthProvider({ children }) {
     loading
   };
 
+  // We don't render anything until Firebase has checked the auth state
   return (
     <AuthContext.Provider value={value}>
       {!loading && children}
