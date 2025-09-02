@@ -18,6 +18,7 @@ export default function DashboardScreen() {
     const [editingTaskId, setEditingTaskId] = useState(null);
     const [editingTaskText, setEditingTaskText] = useState('');
     const [filter, setFilter] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState(null);
 
@@ -41,8 +42,14 @@ export default function DashboardScreen() {
         });
         if (filter === 'pending') return sorted.filter(t => t.status === 'pending');
         if (filter === 'completed') return sorted.filter(t => t.status === 'completed');
-        return sorted;
-    }, [tasks, filter]);
+        
+        let filtered = sorted;
+        if (searchQuery.trim() !== '') {
+            filtered = filtered.filter(t => t.text.toLowerCase().includes(searchQuery.toLowerCase()));
+        }
+
+        return filtered;
+    }, [tasks, filter, searchQuery]);
 
     const handleAddTask = async () => {
         if (newTask.trim() === "") return;
@@ -169,6 +176,14 @@ export default function DashboardScreen() {
                     <TouchableOpacity onPress={() => setFilter('completed')} style={[styles.filterButton, filter === 'completed' && styles.activeFilter]}><Text style={styles.filterText}>Completed</Text></TouchableOpacity>
                 </View>
 
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search tasks..."
+                    placeholderTextColor="#9ca3af"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                />
+
                 {loading ? <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }}/> : (
                     <FlatList
                         data={filteredTasks}
@@ -210,5 +225,6 @@ const styles = StyleSheet.create({
     completedBadge: { backgroundColor: 'rgba(52, 211, 153, 0.2)', color: '#34d399' },
     editButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 20, marginTop: 10 },
     emptyList: { marginTop: 50, alignItems: 'center' },
-    emptyText: { color: '#9ca3af', fontSize: 16 }
+    emptyText: { color: '#9ca3af', fontSize: 16 },
+    searchInput: { backgroundColor: '#1f2937', color: 'white', borderRadius: 8, paddingHorizontal: 15, paddingVertical: 12, fontSize: 16, marginBottom: 20 }
 });
