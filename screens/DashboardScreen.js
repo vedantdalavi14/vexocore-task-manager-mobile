@@ -24,6 +24,8 @@ export default function DashboardScreen() {
     const [taskToDelete, setTaskToDelete] = useState(null);
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
     const [dueDate, setDueDate] = useState(null);
+    const [editingDueDate, setEditingDueDate] = useState(null);
+    const [datePickerTarget, setDatePickerTarget] = useState('new');
 
     useEffect(() => {
         if (!currentUser) return;
@@ -84,14 +86,19 @@ export default function DashboardScreen() {
     const handleStartEdit = (task) => {
         setEditingTaskId(task.id);
         setEditingTaskText(task.text);
+        setEditingDueDate(task.dueDate);
     };
 
     const handleUpdateTask = async () => {
         if (editingTaskText.trim() === "") return;
         const taskRef = doc(db, "tasks", editingTaskId);
-        await updateDoc(taskRef, { text: editingTaskText.trim() });
+        await updateDoc(taskRef, { 
+            text: editingTaskText.trim(),
+            dueDate: editingDueDate,
+        });
         setEditingTaskId(null);
         setEditingTaskText('');
+        setEditingDueDate(null);
     };
 
     const confirmLogout = () => signOut(auth);
@@ -107,7 +114,8 @@ export default function DashboardScreen() {
         return `${day}-${month}-${year} ${hours}:${minutes}`;
     };
 
-    const showDatePicker = () => {
+    const showDatePicker = (target) => {
+        setDatePickerTarget(target);
         setDatePickerVisibility(true);
     };
 
@@ -116,7 +124,11 @@ export default function DashboardScreen() {
     };
 
     const handleConfirm = (date) => {
-        setDueDate(date.toISOString());
+        if (datePickerTarget === 'new') {
+            setDueDate(date.toISOString());
+        } else {
+            setEditingDueDate(date.toISOString());
+        }
         hideDatePicker();
     };
 
@@ -138,6 +150,10 @@ export default function DashboardScreen() {
                         )}
                     </View>
                     <View style={styles.editButtons}>
+                        <TouchableOpacity onPress={() => showDatePicker('edit')} style={styles.datePickerButtonEdit}>
+                            <Calendar size={18} color="#9ca3af" />
+                            <Text style={styles.datePickerEditText}>{editingDueDate ? formatDueDate(editingDueDate) : 'Set Date'}</Text>
+                        </TouchableOpacity>
                         <TouchableOpacity onPress={() => setEditingTaskId(null)}>
                             <Text style={{ color: '#9ca3af' }}>Cancel</Text>
                         </TouchableOpacity>
@@ -209,7 +225,7 @@ export default function DashboardScreen() {
                             </TouchableOpacity>
                         )}
                     </View>
-                    <TouchableOpacity style={styles.datePickerButton} onPress={showDatePicker}>
+                    <TouchableOpacity style={styles.datePickerButton} onPress={() => showDatePicker('new')}>
                         <Text style={styles.datePickerText}>{formatDueDate(dueDate)}</Text>
                         <Calendar size={20} color="white" />
                     </TouchableOpacity>
@@ -303,7 +319,19 @@ const styles = StyleSheet.create({
     statusBadge: { fontSize: 10, fontWeight: 'bold', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, overflow: 'hidden' },
     pendingBadge: { backgroundColor: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24' },
     completedBadge: { backgroundColor: 'rgba(52, 211, 153, 0.2)', color: '#34d399' },
-    editButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 20, marginTop: 10 },
+    editButtons: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 20, marginTop: 10 },
+    datePickerButtonEdit: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#374151',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 6,
+    },
+    datePickerEditText: {
+        color: '#9ca3af',
+        marginLeft: 5,
+    },
     emptyList: { marginTop: 50, alignItems: 'center' },
     emptyText: { color: '#9ca3af', fontSize: 16 },
     searchContainer: {
