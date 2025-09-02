@@ -1,11 +1,11 @@
 // screens/DashboardScreen.js
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, SafeAreaView, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, SafeAreaView, Switch, ActivityIndicator, Platform } from 'react-native';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { collection, addDoc, query, where, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { Plus, Trash2, Pencil, CheckSquare, AlertTriangle } from 'lucide-react-native';
+import { Plus, Trash2, Pencil, CheckSquare, AlertTriangle, X } from 'lucide-react-native';
 import ConfirmationModal from '../components/ConfirmationModal';
 import Countdown from '../components/Countdown';
 
@@ -96,12 +96,19 @@ export default function DashboardScreen() {
         if (editingTaskId === item.id) {
             return (
                 <View style={styles.taskItem}>
-                    <TextInput
-                        style={styles.editInput}
-                        value={editingTaskText}
-                        onChangeText={setEditingTaskText}
-                        autoFocus={true}
-                    />
+                    <View style={styles.inputWrapper}>
+                        <TextInput
+                            style={styles.editInput}
+                            value={editingTaskText}
+                            onChangeText={setEditingTaskText}
+                            autoFocus={true}
+                        />
+                        {editingTaskText.length > 0 && (
+                            <TouchableOpacity onPress={() => setEditingTaskText('')} style={styles.clearButton}>
+                                <X size={18} color="#9ca3af" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
                     <View style={styles.editButtons}>
                         <TouchableOpacity onPress={() => setEditingTaskId(null)}>
                             <Text style={{ color: '#9ca3af' }}>Cancel</Text>
@@ -166,7 +173,14 @@ export default function DashboardScreen() {
 
             <View style={styles.main}>
                 <View style={styles.addTaskContainer}>
-                    <TextInput style={styles.input} placeholder="What's your next task?" placeholderTextColor="#9ca3af" value={newTask} onChangeText={setNewTask} onSubmitEditing={handleAddTask} />
+                    <View style={styles.inputWrapper}>
+                        <TextInput style={styles.input} placeholder="What's your next task?" placeholderTextColor="#9ca3af" value={newTask} onChangeText={setNewTask} onSubmitEditing={handleAddTask} />
+                        {newTask.length > 0 && (
+                            <TouchableOpacity onPress={() => setNewTask('')} style={styles.clearButton}>
+                                <X size={18} color="#9ca3af" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
                     <TouchableOpacity style={styles.addButton} onPress={handleAddTask}><Plus size={20} color="white" /></TouchableOpacity>
                 </View>
 
@@ -176,13 +190,20 @@ export default function DashboardScreen() {
                     <TouchableOpacity onPress={() => setFilter('completed')} style={[styles.filterButton, filter === 'completed' && styles.activeFilter]}><Text style={styles.filterText}>Completed</Text></TouchableOpacity>
                 </View>
 
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search tasks..."
-                    placeholderTextColor="#9ca3af"
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                />
+                <View style={styles.searchContainer}>
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search tasks..."
+                        placeholderTextColor="#9ca3af"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                            <X size={18} color="#9ca3af" />
+                        </TouchableOpacity>
+                    )}
+                </View>
 
                 {loading ? <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }}/> : (
                     <FlatList
@@ -197,17 +218,24 @@ export default function DashboardScreen() {
     );
 }
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#111827' },
+    container: { flex: 1, backgroundColor: '#111827', paddingTop: Platform.OS === 'android' ? 25 : 0 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#1f2937' },
     headerTitleContainer: { flexDirection: 'row', alignItems: 'center' },
     headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold', marginLeft: 10 },
-    headerRight: { flexDirection: 'row', alignItems: 'center' },
-    emailText: { color: '#9ca3af', marginRight: 15 },
+    headerRight: { flexDirection: 'column', alignItems: 'flex-end' },
+    emailText: { color: '#9ca3af', marginBottom: 5 },
     logoutButton: { color: 'white', backgroundColor: '#374151', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, overflow: 'hidden' },
     main: { flex: 1, padding: 20 },
     addTaskContainer: { flexDirection: 'row', marginBottom: 20 },
-    input: { flex: 1, backgroundColor: '#1f2937', color: 'white', borderRadius: 8, paddingHorizontal: 15, paddingVertical: 12, fontSize: 16 },
-    editInput: { backgroundColor: '#374151', color: 'white', borderRadius: 8, padding: 10, fontSize: 16, marginBottom: 10 },
+    inputWrapper: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#1f2937',
+        borderRadius: 8,
+    },
+    input: { flex: 1, color: 'white', paddingHorizontal: 15, paddingVertical: 12, fontSize: 16 },
+    editInput: { flex: 1, color: 'white', padding: 10, fontSize: 16 },
     addButton: { backgroundColor: '#3b82f6', padding: 12, borderRadius: 8, marginLeft: 10, justifyContent: 'center', alignItems: 'center' },
     filterContainer: { flexDirection: 'row', marginBottom: 20 },
     filterButton: { paddingVertical: 10, flex: 1, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
@@ -226,5 +254,21 @@ const styles = StyleSheet.create({
     editButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 20, marginTop: 10 },
     emptyList: { marginTop: 50, alignItems: 'center' },
     emptyText: { color: '#9ca3af', fontSize: 16 },
-    searchInput: { backgroundColor: '#1f2937', color: 'white', borderRadius: 8, paddingHorizontal: 15, paddingVertical: 12, fontSize: 16, marginBottom: 20 }
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#1f2937',
+        borderRadius: 8,
+        marginBottom: 20,
+    },
+    searchInput: {
+        flex: 1,
+        color: 'white',
+        paddingHorizontal: 15,
+        paddingVertical: 12,
+        fontSize: 16,
+    },
+    clearButton: {
+        padding: 10,
+    }
 });
