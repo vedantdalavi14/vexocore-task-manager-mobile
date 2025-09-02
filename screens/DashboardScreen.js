@@ -5,9 +5,10 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 import { collection, addDoc, query, where, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { Plus, Trash2, Pencil, CheckSquare, AlertTriangle, X } from 'lucide-react-native';
+import { Plus, Trash2, Pencil, CheckSquare, AlertTriangle, X, Calendar } from 'lucide-react-native';
 import ConfirmationModal from '../components/ConfirmationModal';
 import Countdown from '../components/Countdown';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 // This is a direct translation of your web app's dashboard
 export default function DashboardScreen() {
@@ -21,6 +22,8 @@ export default function DashboardScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [taskToDelete, setTaskToDelete] = useState(null);
+    const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+    const [dueDate, setDueDate] = useState(null);
 
     useEffect(() => {
         if (!currentUser) return;
@@ -59,9 +62,10 @@ export default function DashboardScreen() {
                 status: 'pending',
                 createdAt: serverTimestamp(),
                 userId: currentUser.uid,
-                dueDate: null,
+                dueDate: dueDate,
             });
             setNewTask('');
+            setDueDate(null);
         } catch (error) { console.error("Error adding task: ", error); }
     };
 
@@ -91,6 +95,30 @@ export default function DashboardScreen() {
     };
 
     const confirmLogout = () => signOut(auth);
+
+    const formatDueDate = (isoDate) => {
+        if (!isoDate) return 'dd-mm-yyyy --:--';
+        const date = new Date(isoDate);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${day}-${month}-${year} ${hours}:${minutes}`;
+    };
+
+    const showDatePicker = () => {
+        setDatePickerVisibility(true);
+    };
+
+    const hideDatePicker = () => {
+        setDatePickerVisibility(false);
+    };
+
+    const handleConfirm = (date) => {
+        setDueDate(date.toISOString());
+        hideDatePicker();
+    };
 
     const renderTask = ({ item }) => {
         if (editingTaskId === item.id) {
@@ -181,8 +209,19 @@ export default function DashboardScreen() {
                             </TouchableOpacity>
                         )}
                     </View>
+                    <TouchableOpacity style={styles.datePickerButton} onPress={showDatePicker}>
+                        <Text style={styles.datePickerText}>{formatDueDate(dueDate)}</Text>
+                        <Calendar size={20} color="white" />
+                    </TouchableOpacity>
                     <TouchableOpacity style={styles.addButton} onPress={handleAddTask}><Plus size={20} color="white" /></TouchableOpacity>
                 </View>
+
+                <DateTimePickerModal
+                    isVisible={isDatePickerVisible}
+                    mode="datetime"
+                    onConfirm={handleConfirm}
+                    onCancel={hideDatePicker}
+                />
 
                 <View style={styles.filterContainer}>
                     <TouchableOpacity onPress={() => setFilter('all')} style={[styles.filterButton, filter === 'all' && styles.activeFilter]}><Text style={styles.filterText}>All Tasks</Text></TouchableOpacity>
@@ -226,7 +265,7 @@ const styles = StyleSheet.create({
     emailText: { color: '#9ca3af', marginBottom: 5 },
     logoutButton: { color: 'white', backgroundColor: '#374151', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, overflow: 'hidden' },
     main: { flex: 1, padding: 20 },
-    addTaskContainer: { flexDirection: 'row', marginBottom: 20 },
+    addTaskContainer: { flexDirection: 'row', marginBottom: 20, alignItems: 'center' },
     inputWrapper: {
         flex: 1,
         flexDirection: 'row',
@@ -236,6 +275,19 @@ const styles = StyleSheet.create({
     },
     input: { flex: 1, color: 'white', paddingHorizontal: 15, paddingVertical: 12, fontSize: 16 },
     editInput: { flex: 1, color: 'white', padding: 10, fontSize: 16 },
+    datePickerButton: {
+        backgroundColor: '#1f2937',
+        padding: 12,
+        borderRadius: 8,
+        marginLeft: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row',
+    },
+    datePickerText: {
+        color: 'white',
+        marginRight: 10,
+    },
     addButton: { backgroundColor: '#3b82f6', padding: 12, borderRadius: 8, marginLeft: 10, justifyContent: 'center', alignItems: 'center' },
     filterContainer: { flexDirection: 'row', marginBottom: 20 },
     filterButton: { paddingVertical: 10, flex: 1, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
